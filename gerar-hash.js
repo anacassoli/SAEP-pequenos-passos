@@ -191,7 +191,7 @@ app.post('/responsaveis/novo', verificarLogin, async (req, res) => {
             }
         }
 
-        const cpfHash = await bcrypt.hash(cpf, 10);
+        const cpfHash = await criptografarCpf(cpf);
 
         await pool.query(
             `INSERT INTO responsaveis

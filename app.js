@@ -1,5 +1,4 @@
-﻿
-import express from 'express';
+﻿import express from 'express';
 import session from 'express-session';
 import bcrypt from 'bcrypt';
 import path from 'path';
@@ -7,6 +6,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import pool from './db.js';
 import { verificarLogin } from './middleware/auth.js';
+import { cadastrarResponsavel } from './novo-responsavel.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,12 +16,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configurações do sistema
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-
 app.use(express.urlencoded({ extended: false }));
-
 app.use(session({
     secret: process.env.SESSION_SECRET || 'chave_secreta_pequenos_passos',
     resave: false,
@@ -33,7 +30,6 @@ app.use(session({
         maxAge: 1000 * 60 * 60
     }
 }));
-
 app.use((req, res, next) => {
     res.locals.usuario = req.session.usuario || null;
     next();
@@ -44,7 +40,6 @@ app.get('/', (req, res) => {
     if (req.session.usuario) {
         return res.redirect('/dashboard');
     }
-
     res.redirect('/login');
 });
 
@@ -53,54 +48,43 @@ app.get('/login', (req, res) => {
     if (req.session.usuario) {
         return res.redirect('/dashboard');
     }
-
     res.render('login', { erro: null });
 });
-
 app.post('/login', async (req, res) => {
     const email = String(req.body.email || '').trim().toLowerCase();
     const senha = String(req.body.senha || '');
-
     try {
         const resultado = await pool.query(
             'SELECT id, nome, email, senha_hash FROM usuarios WHERE email = $1',
             [email]
         );
-
         if (resultado.rows.length === 0) {
             return res.status(401).render('login', {
                 erro: 'E-mail ou senha incorretos.'
             });
         }
-
         const usuario = resultado.rows[0];
-
         const senhaCorreta = await bcrypt.compare(
             senha,
             usuario.senha_hash
         );
-
         if (!senhaCorreta) {
             return res.status(401).render('login', {
                 erro: 'E-mail ou senha incorretos.'
             });
         }
-
         req.session.regenerate((erro) => {
             if (erro) {
                 console.error(erro);
                 return res.status(500).send('Erro ao iniciar a sessão.');
             }
-
             req.session.usuario = {
                 id: usuario.id,
                 nome: usuario.nome,
                 email: usuario.email
             };
-
             res.redirect('/dashboard');
         });
-
     } catch (erro) {
         console.error(erro);
         res.status(500).send('Erro ao realizar login.');
@@ -120,51 +104,40 @@ app.get('/dashboard', verificarLogin, (req, res) => {
         usuario: req.session.usuario
     });
 });
-
 // Responsáveis
 app.get('/responsaveis', verificarLogin, async (req, res) => {
-    const busca = String(req.query.busca || '').trim();
-
+ const busca = String(req.query.busca || '').trim();
     try {
         const resultado = await pool.query(
             `SELECT id, nome_completo, cpf_hash, email, telefone
              FROM responsaveis
              ORDER BY nome_completo`
         );
-
         let responsaveis = resultado.rows;
-
         if (busca) {
             const termo = busca.toLocaleLowerCase('pt-BR');
             const cpf = busca.replace(/\D/g, '');
-
             const encontrados = await Promise.all(
                 resultado.rows.map(async (responsavel) => {
                     const nomeBate = responsavel.nome_completo
                         .toLocaleLowerCase('pt-BR')
                         .includes(termo);
-
                     let cpfBate = false;
-
                     if (cpf.length === 11) {
                         cpfBate = await bcrypt.compare(
                             cpf,
                             responsavel.cpf_hash
                         );
                     }
-
                     return nomeBate || cpfBate ? responsavel : null;
                 })
             );
-
             responsaveis = encontrados.filter(Boolean);
         }
-
         res.render('responsaveis', {
             responsaveis,
             busca
         });
-
     } catch (erro) {
         console.error(erro);
         res.status(500).send('Erro ao carregar os responsáveis.');
@@ -178,49 +151,28 @@ app.get('/responsaveis/novo', verificarLogin, (req, res) => {
 
 // Cadastrar responsável
 app.post('/responsaveis/novo', verificarLogin, async (req, res) => {
-    const { nome_completo, email, telefone } = req.body;
-    const cpf = String(req.body.cpf || '').replace(/\D/g, '');
-
+    const { nome_completo, cpf, email, telefone } = req.body;
     try {
-        if (!nome_completo?.trim() || cpf.length !== 11) {
+        if (!nome_completo?.trim() || !cpf) {
             return res.status(400).send(
-                'Informe o nome e um CPF válido com 11 dígitos.'
+                'Informe o nome e o CPF.'
             );
         }
-
-        const resultado = await pool.query(
-            'SELECT cpf_hash FROM responsaveis'
+        await cadastrarResponsavel(
+            nome_completo,
+            cpf,
+            email,
+            telefone
         );
-
-        for (const responsavel of resultado.rows) {
-            const cpfExiste = await bcrypt.compare(
-                cpf,
-                responsavel.cpf_hash
-            );
-
-            if (cpfExiste) {
-                return res.status(409).send('Este CPF já está cadastrado.');
-            }
-        }
-
-        const cpfHash = await bcrypt.hash(cpf, 10);
-
-        await pool.query(
-            `INSERT INTO responsaveis
-            (nome_completo, cpf_hash, email, telefone)
-            VALUES ($1, $2, $3, $4)`,
-            [
-                nome_completo.trim(),
-                cpfHash,
-                email?.trim() || null,
-                telefone?.trim() || null
-            ]
-        );
-
         res.redirect('/responsaveis');
-
     } catch (erro) {
         console.error(erro);
+        if (
+            erro.message === 'CPF inválido' ||
+            erro.message === 'Este CPF já está cadastrado!'
+        ) {
+            return res.status(400).send(erro.message);
+        }
         res.status(500).send('Erro ao cadastrar responsável.');
     }
 });
@@ -234,15 +186,12 @@ app.get('/responsaveis/editar/:id', verificarLogin, async (req, res) => {
              WHERE id = $1`,
             [req.params.id]
         );
-
         if (resultado.rows.length === 0) {
             return res.status(404).send('Responsável não encontrado.');
         }
-
         res.render('editar-responsavel', {
             responsavel: resultado.rows[0]
         });
-
     } catch (erro) {
         console.error(erro);
         res.status(500).send('Erro ao carregar responsável.');
@@ -252,12 +201,10 @@ app.get('/responsaveis/editar/:id', verificarLogin, async (req, res) => {
 // Editar responsável
 app.post('/responsaveis/editar/:id', verificarLogin, async (req, res) => {
     const { nome_completo, email, telefone } = req.body;
-
     try {
         if (!nome_completo?.trim()) {
             return res.status(400).send('Informe o nome completo.');
         }
-
         const resultado = await pool.query(
             `UPDATE responsaveis
              SET nome_completo = $1,
@@ -271,13 +218,10 @@ app.post('/responsaveis/editar/:id', verificarLogin, async (req, res) => {
                 req.params.id
             ]
         );
-
         if (resultado.rowCount === 0) {
             return res.status(404).send('Responsável não encontrado.');
         }
-
         res.redirect('/responsaveis');
-
     } catch (erro) {
         console.error(erro);
         res.status(500).send('Erro ao editar responsável.');
@@ -297,11 +241,9 @@ app.get('/criancas', verificarLogin, async (req, res) => {
              ON c.responsavel_id = r.id
              ORDER BY c.nome_completo`
         );
-
         res.render('criancas', {
             criancas: resultado.rows
         });
-
     } catch (erro) {
         console.error(erro);
         res.status(500).send('Erro ao carregar as crianças.');
@@ -314,11 +256,9 @@ app.get('/criancas/novo', verificarLogin, async (req, res) => {
         const resultado = await pool.query(
             'SELECT id, nome_completo FROM responsaveis ORDER BY nome_completo'
         );
-
         res.render('nova-crianca', {
             responsaveis: resultado.rows
         });
-
     } catch (erro) {
         console.error(erro);
         res.status(500).send('Erro ao carregar responsáveis.');
@@ -328,21 +268,17 @@ app.get('/criancas/novo', verificarLogin, async (req, res) => {
 // Cadastrar criança
 app.post('/criancas/novo', verificarLogin, async (req, res) => {
     const { nome_completo, data_nascimento, responsavel_id } = req.body;
-
     try {
         if (!nome_completo?.trim() || !data_nascimento || !responsavel_id) {
             return res.status(400).send('Preencha todos os campos.');
         }
-
         await pool.query(
             `INSERT INTO criancas
             (nome_completo, data_nascimento, responsavel_id)
             VALUES ($1, $2, $3)`,
             [nome_completo.trim(), data_nascimento, responsavel_id]
         );
-
         res.redirect('/criancas');
-
     } catch (erro) {
         console.error(erro);
         res.status(500).send('Erro ao cadastrar criança.');
@@ -360,20 +296,16 @@ app.get('/criancas/editar/:id', verificarLogin, async (req, res) => {
              WHERE id = $1`,
             [req.params.id]
         );
-
         if (crianca.rows.length === 0) {
             return res.status(404).send('Criança não encontrada.');
         }
-
         const responsaveis = await pool.query(
             'SELECT id, nome_completo FROM responsaveis ORDER BY nome_completo'
         );
-
         res.render('editar-crianca', {
             crianca: crianca.rows[0],
             responsaveis: responsaveis.rows
         });
-
     } catch (erro) {
         console.error(erro);
         res.status(500).send('Erro ao carregar criança.');
@@ -383,12 +315,10 @@ app.get('/criancas/editar/:id', verificarLogin, async (req, res) => {
 // Editar criança
 app.post('/criancas/editar/:id', verificarLogin, async (req, res) => {
     const { nome_completo, data_nascimento, responsavel_id } = req.body;
-
     try {
         if (!nome_completo?.trim() || !data_nascimento || !responsavel_id) {
             return res.status(400).send('Preencha todos os campos.');
         }
-
         const resultado = await pool.query(
             `UPDATE criancas
              SET nome_completo = $1,
@@ -402,13 +332,10 @@ app.post('/criancas/editar/:id', verificarLogin, async (req, res) => {
                 req.params.id
             ]
         );
-
         if (resultado.rowCount === 0) {
             return res.status(404).send('Criança não encontrada.');
         }
-
         res.redirect('/criancas');
-
     } catch (erro) {
         console.error(erro);
         res.status(500).send('Erro ao editar criança.');
@@ -433,11 +360,9 @@ app.get('/agendamentos', verificarLogin, async (req, res) => {
              ON a.responsavel_id = r.id
              ORDER BY a.data_consulta, a.hora_consulta`
         );
-
         res.render('agendamentos', {
             agendamentos: resultado.rows
         });
-
     } catch (erro) {
         console.error(erro);
         res.status(500).send('Erro ao carregar agendamentos.');
@@ -447,12 +372,10 @@ app.get('/agendamentos', verificarLogin, async (req, res) => {
 // Alterar data e horário do agendamento
 app.post('/agendamentos/editar/:id', verificarLogin, async (req, res) => {
     const { data_consulta, hora_consulta } = req.body;
-
     try {
         if (!data_consulta || !hora_consulta) {
             return res.status(400).send('Informe a nova data e horário.');
         }
-
         const resultado = await pool.query(
             `UPDATE agendamentos
              SET data_consulta = $1,
@@ -460,13 +383,10 @@ app.post('/agendamentos/editar/:id', verificarLogin, async (req, res) => {
              WHERE id = $3`,
             [data_consulta, hora_consulta, req.params.id]
         );
-
         if (resultado.rowCount === 0) {
             return res.status(404).send('Agendamento não encontrado.');
         }
-
         res.redirect('/agendamentos');
-
     } catch (erro) {
         console.error(erro);
         res.status(500).send('Erro ao editar agendamento.');
