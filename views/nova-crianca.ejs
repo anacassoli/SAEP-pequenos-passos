@@ -1,0 +1,31 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Nova criança</title>
+</head>
+<body>
+    <h1>Cadastrar criança</h1>
+    <a href="/criancas">Voltar</a>
+    <form action="/criancas/novo" method="POST">
+        <label>Nome completo:</label>
+        <input type="text" name="nome_completo" required>
+        <br><br>
+        <label>Data de nascimento:</label>
+        <input type="date" name="data_nascimento" required>
+        <br><br>
+        <label>Responsável:</label>
+        <select name="responsavel_id" required>
+            <option value="">Selecione um responsável</option>
+            <% responsaveis.forEach(responsavel => { %>
+                <option value="<%= responsavel.id %>">
+                    <%= responsavel.nome_completo %>
+                </option>
+            <% }) %>
+        </select>
+        <br><br>
+        <button type="submit">Cadastrar</button>
+    </form>
+</body>
+</html>

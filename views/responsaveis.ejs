@@ -1,0 +1,33 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Responsáveis</title>
+</head>
+<body>
+    <h1>Responsáveis cadastrados</h1>
+    <a href="/dashboard">Voltar</a>
+    <a href="/responsaveis/novo">Cadastrar responsável</a>
+    <form action="/responsaveis" method="GET">
+        <input
+            type="text"
+            name="busca"
+            placeholder="Pesquisar por nome ou CPF"
+            value="<%= busca || '' %>"
+        >
+        <button type="submit">Pesquisar</button>
+    </form>
+    <% responsaveis.forEach(responsavel => { %>
+        <div>
+            <h3><%= responsavel.nome_completo %></h3>
+            <p>E-mail: <%= responsavel.email %></p>
+            <p>Telefone: <%= responsavel.telefone %></p>
+            <a href="/responsaveis/editar/<%= responsavel.id %>">
+                Editar
+            </a>
+        </div>
+        <hr>
+          <% }) %>
+</body>
+</html>

@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar responsável</title>
+</head>
+<body>
+
+    <h1>Editar responsável</h1>
+    <a href="/responsaveis">Voltar</a>
+    <form action="/responsaveis/editar/<%= responsavel.id %>" method="POST">
+        <label>Nome completo:</label>
+        <input
+            type="text"
+            name="nome_completo"
+            value="<%= responsavel.nome_completo %>"
+            required
+        >
+        <br><br>
+        <label>E-mail:</label>
+        <input
+            type="email"
+            name="email"
+            value="<%= responsavel.email || '' %>"
+        >
+        <br><br>
+        <label>Telefone:</label>
+        <input
+            type="text"
+            name="telefone"
+            value="<%= responsavel.telefone || '' %>"
+        >
+        <br><br>
+        <button type="submit">Salvar alterações</button>
+    </form>
+</body>
+</html>

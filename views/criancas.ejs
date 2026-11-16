@@ -1,0 +1,25 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Crianças</title>
+</head>
+<body>
+
+    <h1>Crianças cadastradas</h1>
+    <a href="/dashboard">Voltar</a>
+    <a href="/criancas/novo">Cadastrar criança</a>
+    <% criancas.forEach(crianca => { %>
+        <div>
+            <h3><%= crianca.nome_completo %></h3>
+            <p>Data de nascimento: <%= crianca.data_nascimento %></p>
+            <p>Responsável: <%= crianca.nome_responsavel %></p>
+            <a href="/criancas/editar/<%= crianca.id %>">
+                Editar
+            </a>
+        </div>
+        <hr>
+          <% }) %>
+</body>
+</html>

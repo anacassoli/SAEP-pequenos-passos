@@ -1,0 +1,22 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Pequenos Passos</title>
+</head>
+<body>
+
+    <h1>Pequenos Passos</h1>
+    <h2>Bem-vindo(a), <%= usuario.nome %>!</h2>
+    <nav>
+        <a href="/responsaveis">Responsáveis</a>
+        <a href="/criancas">Crianças</a>
+        <a href="/agendamentos">Agendamentos</a>
+    </nav>
+    <br>
+    <form action="/logout" method="POST">
+        <button type="submit">Sair</button>
+    </form>
+</body>
+</html>

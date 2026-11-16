@@ -1,0 +1,7 @@
+// Verifica se o usuario esta autenticado
+export const verificarLogin = (req, res, next) => {
+    if (!req.session.usuario) {
+        return res.redirect('/login');
+    }
+    next();
+};

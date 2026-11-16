@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Agendamentos</title>
+</head>
+<body>
+
+    <h1>Agendamentos</h1>
+    <a href="/dashboard">Voltar</a>
+    <% agendamentos.forEach(agendamento => { %>
+        <div>
+            <h3><%= agendamento.nome_crianca %></h3>
+            <p>Responsável: <%= agendamento.nome_responsavel %></p>
+            <p>Data: <%= agendamento.data_consulta %></p>
+            <p>Horário: <%= agendamento.hora_consulta %></p>
+            <p>Observação: <%= agendamento.observacao %></p>
+            <p>Status: <%= agendamento.status %></p>
+
+            <form
+                action="/agendamentos/editar/<%= agendamento.id %>"
+                method="POST"
+            >
+
+                <label>Nova data:</label>
+                <input type="date" name="data_consulta" required>
+                <br><br>
+                <label>Novo horário:</label>
+                <input type="time" name="hora_consulta" required>
+                <br><br>
+                <button type="submit">Remarcar consulta</button>
+            </form>
+        </div>
+        <hr>
+          <% }) %>
+</body>
+</html>

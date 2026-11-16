@@ -1,0 +1,44 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar criança</title>
+</head>
+<body>
+
+    <h1>Editar criança</h1>
+    <a href="/criancas">Voltar</a>
+    <form action="/criancas/editar/<%= crianca.id %>" method="POST">
+        <label>Nome completo:</label>
+        <input
+            type="text"
+            name="nome_completo"
+            value="<%= crianca.nome_completo %>"
+            required
+        >
+        <br><br>
+        <label>Data de nascimento:</label>
+        <input
+            type="date"
+            name="data_nascimento"
+            value="<%= crianca.data_nascimento %>"
+            required
+        >
+        <br><br>
+        <label>Responsável:</label>
+        <select name="responsavel_id" required>
+            <% responsaveis.forEach(responsavel => { %>
+                <option
+                    value="<%= responsavel.id %>"
+                    <%= responsavel.id == crianca.responsavel_id ? 'selected' : '' %>
+                >
+                    <%= responsavel.nome_completo %>
+                </option>
+            <% }) %>
+        </select>
+        <br><br>
+        <button type="submit">Salvar alterações</button>
+    </form>
+</body>
+</html>
