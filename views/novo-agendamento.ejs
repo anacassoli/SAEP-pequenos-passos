@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Novo agendamento</title>
+</head>
+<body>
+
+    <h1>Novo agendamento</h1>
+
+    <a href="/agendamentos">Voltar</a>
+
+    <form action="/agendamentos/novo" method="POST">
+
+        <label>Criança:</label>
+        <select name="crianca_id" required>
+            <option value="">Selecione uma criança</option>
+
+            <% criancas.forEach(crianca => { %>
+                <option value="<%= crianca.id %>">
+                    <%= crianca.nome_completo %>
+                </option>
+            <% }) %>
+        </select>
+
+        <br><br>
+
+        <label>Responsável:</label>
+        <select name="responsavel_id" required>
+            <option value="">Selecione um responsável</option>
+
+            <% responsaveis.forEach(responsavel => { %>
+                <option value="<%= responsavel.id %>">
+                    <%= responsavel.nome_completo %>
+                </option>
+            <% }) %>
+        </select>
+
+        <br><br>
+
+        <label>Data da consulta:</label>
+        <input type="date" name="data_consulta" required>
+
+        <br><br>
+
+        <label>Horário da consulta:</label>
+        <input type="time" name="hora_consulta" required>
+
+        <br><br>
+
+        <label>Observação:</label>
+        <textarea name="observacao"></textarea>
+
+        <br><br>
+
+        <label>Status:</label>
+        <select name="status" required>
+            <option value="Agendado">Agendado</option>
+            <option value="Confirmado">Confirmado</option>
+            <option value="Concluído">Concluído</option>
+            <option value="Cancelado">Cancelado</option>
+        </select>
+
+        <br><br>
+
+        <button type="submit">Salvar agendamento</button>
+
+    </form>
+
+</body>
+</html>
